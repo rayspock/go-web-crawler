@@ -15,3 +15,9 @@ Fetch URLs in parallel.
 ```bash
 $ go run main.go -depth 2 -website https://github.com
 ```
+
+## Run Test
+
+```bash
+$ go test -v ./...
+```
