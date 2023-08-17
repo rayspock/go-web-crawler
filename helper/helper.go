@@ -8,12 +8,16 @@ import (
 	"golang.org/x/net/html"
 )
 
-// HTTPClient ... HTTP client
+//go:generate mockgen -package=mock -destination=mock/helper.go -source=./helper.go
+
+// HTTPClient ... interface for http.Client
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// Fetch ... return a slice of URLs found on that page
+type LinkFetcher func(client HTTPClient, url string) (urls []string, err error)
+
+// Fetch ... fetches all the links from a given URL
 func Fetch(client HTTPClient, url string) (urls []string, err error) {
 	// Make HTTP Get request
 	req, err := http.NewRequest(http.MethodGet, url, nil)
