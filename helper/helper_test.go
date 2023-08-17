@@ -1,33 +1,39 @@
-package helper
+package helper_test
 
 import (
-	"bytes"
-	"io/ioutil"
-	"fmt"
-	"net/http"
+	"github.com/rayspock/go-web-crawler/helper"
+	"github.com/rayspock/go-web-crawler/helper/mock"
+	"github.com/stretchr/testify/suite"
+	"go.uber.org/mock/gomock"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-type ClientMock struct {
+func TestHelperSuite(t *testing.T) {
+	suite.Run(t, new(HelperSuite))
 }
 
-func (c *ClientMock) Do(req *http.Request) (*http.Response, error) {
-	var body = []byte("<html><a href='https://github.com'></a><a href='/topics'></a><a href='https://rayspock.com'></a></html>")
-	return &http.Response{StatusCode: http.StatusOK, Body: ioutil.NopCloser(bytes.NewReader(body))}, nil
+type HelperSuite struct {
+	suite.Suite
+
+	client *mock.MockHTTPClient
 }
 
-func TestFetch(t *testing.T) {
-	const domain = "https://github.com"
-	urls, err := Fetch(&ClientMock{}, domain)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		panic(err)
-	}
-	for _, u := range urls {
-		fmt.Printf("Found: %s\n", u)
-		assert.NotContains(t, u, "https")
-		assert.NotContains(t, u, "rayspock.com")
-	}
+func (s *HelperSuite) SetupTest() {
+	ctrl := gomock.NewController(s.T())
+	s.client = mock.NewMockHTTPClient(ctrl)
+}
+
+func (s *HelperSuite) TestFetch() {
+	const (
+		baseUrl  = "https://github.com"
+		htmlBody = "<html><a href='https://github.com'></a><a href='/topics'></a><a href='https://rayspock.com'></a></html>"
+	)
+	s.client.ExpectHtmlPageReturn(baseUrl, htmlBody)
+	urls, err := helper.Fetch(s.client, baseUrl)
+	s.NoError(err)
+	s.Len(urls, 1)
+	s.Contains(urls, "/topics")
+	s.NotContains(urls, "rayspock.com")
+	s.NotContains(urls, "https")
+	s.NotContains(urls, "github.com")
 }
